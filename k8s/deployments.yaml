@@ -1,0 +1,275 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Deployment 1: Version v1.0.0
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-app-v1
+  namespace: memory-app-prod
+  labels:
+    app: memory-app
+    version: v1.0.0
+    app.kubernetes.io/name: memory-app
+    app.kubernetes.io/instance: v1.0.0
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-app
+      version: v1.0.0
+  template:
+    metadata:
+      labels:
+        app: memory-app
+        version: v1.0.0
+        app.kubernetes.io/name: memory-app
+    spec:
+      serviceAccountName: memory-app-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: init-preflight
+          image: busybox:1.36
+          command: ['sh', '-c', 'echo "[Init] Validating configuration and runtime readiness..."; sleep 2; echo "[Init] Readiness confirmed."']
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: memory-app
+          image: ghcr.io/vijaykumarcm1991/memory-app:v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: memory-app-config
+            - secretRef:
+                name: memory-app-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "150Mi"
+            limits:
+              cpu: "500m"
+              # Crucial requirement: explicit 400Mi memory limit ensures OOMKilled before exhausting node resources
+              memory: "400Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# Deployment 2: Version v1.1.0
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-app-v2
+  namespace: memory-app-prod
+  labels:
+    app: memory-app
+    version: v1.1.0
+    app.kubernetes.io/name: memory-app
+    app.kubernetes.io/instance: v1.1.0
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-app
+      version: v1.1.0
+  template:
+    metadata:
+      labels:
+        app: memory-app
+        version: v1.1.0
+        app.kubernetes.io/name: memory-app
+    spec:
+      serviceAccountName: memory-app-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: init-preflight
+          image: busybox:1.36
+          command: ['sh', '-c', 'echo "[Init] Validating configuration and runtime readiness..."; sleep 2; echo "[Init] Readiness confirmed."']
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: memory-app
+          image: ghcr.io/vijaykumarcm1991/memory-app:v1.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: memory-app-config
+            - secretRef:
+                name: memory-app-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "150Mi"
+            limits:
+              cpu: "500m"
+              # Crucial requirement: explicit 400Mi memory limit ensures OOMKilled before exhausting node resources
+              memory: "400Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# Deployment 3: Version v1.2.0
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memory-app-v3
+  namespace: memory-app-prod
+  labels:
+    app: memory-app
+    version: v1.2.0
+    app.kubernetes.io/name: memory-app
+    app.kubernetes.io/instance: v1.2.0
+    app.kubernetes.io/version: "1.2.0"
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: memory-app
+      version: v1.2.0
+  template:
+    metadata:
+      labels:
+        app: memory-app
+        version: v1.2.0
+        app.kubernetes.io/name: memory-app
+    spec:
+      serviceAccountName: memory-app-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: init-preflight
+          image: busybox:1.36
+          command: ['sh', '-c', 'echo "[Init] Validating configuration and runtime readiness..."; sleep 2; echo "[Init] Readiness confirmed."']
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: memory-app
+          image: ghcr.io/vijaykumarcm1991/memory-app:v1.2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: memory-app-config
+            - secretRef:
+                name: memory-app-secret
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "150Mi"
+            limits:
+              cpu: "500m"
+              # Crucial requirement: explicit 400Mi memory limit ensures OOMKilled before exhausting node resources
+              memory: "400Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2

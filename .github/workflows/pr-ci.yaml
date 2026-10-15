@@ -1,0 +1,114 @@
+name: Pull Request CI & Security Scanning
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
+
+jobs:
+  lint-and-sast:
+    name: Code Quality & SAST Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: 'requirements-dev.txt'
+
+      - name: Install Lint & Security Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Code Quality Linting (Flake8)
+        run: |
+          echo "Running flake8 code style and quality analysis..."
+          flake8 app/ test/
+
+      - name: Static Application Security Testing (SAST - Bandit)
+        run: |
+          echo "Running Bandit SAST (ignoring B104: 0.0.0.0 binding error per specifications)..."
+          bandit -r app/ -s B104 -f screen
+
+  unit-tests:
+    name: Pytest Unit Test Suite
+    runs-on: ubuntu-latest
+    needs: lint-and-sast
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Test Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Execute Pytest Suite
+        run: |
+          echo "Executing test cases against application..."
+          pytest -v --junitxml=test-results.xml test/test_case.py
+
+  secret-scanning:
+    name: Secret & Credential Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog Secret Scanner
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --only-verified
+
+  docker-build-and-scan:
+    name: Container Build & Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: [lint-and-sast, unit-tests]
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Local Test Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: memory-app:pr-${{ github.event.pull_request.number }}
+          load: true
+
+      - name: Container Image Vulnerability Scanning (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: memory-app:pr-${{ github.event.pull_request.number }}
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

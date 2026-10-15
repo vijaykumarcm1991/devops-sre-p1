@@ -1,0 +1,49 @@
+# Loki Configuration for centralized log aggregation
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: 'filesystem'
+  schemaConfig:
+    configs:
+      - from: 2024-01-01
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+promtail:
+  enabled: true
+  config:
+    lokiAddress: http://loki.observability.svc.cluster.local:3100/loki/api/v1/push
+    snippets:
+      extraScrapeConfigs: |
+        - job_name: memory-app-logs
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - memory-app-prod
+          pipeline_stages:
+            - regex:
+                expression: '^(?P<time>\S+ \S+) - (?P<level>\S+) - (?P<message>.*)$'
+            - labels:
+                level:
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              target_label: app
+            - source_labels: [__meta_kubernetes_pod_label_version]
+              target_label: version
+            - source_labels: [__meta_kubernetes_pod_name]
+              target_label: pod
+            - source_labels: [__meta_kubernetes_namespace]
+              target_label: namespace
+            - source_labels: [__meta_kubernetes_pod_container_name]
+              target_label: container
+            - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+              target_label: __path__
+              separator: /
+              replacement: /var/log/pods/*$1/*.log

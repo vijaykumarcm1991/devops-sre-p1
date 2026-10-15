@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: memory-app-monitor
+  namespace: memory-app-prod
+  labels:
+    release: kube-prometheus
+    app: memory-app
+spec:
+  selector:
+    matchLabels:
+      app: memory-app
+  endpoints:
+    - port: http
+      path: /healthcheck
+      interval: 10s
+      scrapeTimeout: 5s

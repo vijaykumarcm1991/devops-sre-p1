@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: memory-app-network-policy
+  namespace: memory-app-prod
+  labels:
+    app.kubernetes.io/name: memory-app
+spec:
+  podSelector:
+    matchLabels:
+      app: memory-app
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic on port 8080 from within the cluster (Services, Ingress, Prometheus scraper)
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

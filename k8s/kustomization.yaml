@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: memory-app-prod
+
+resources:
+  - namespace.yaml
+  - rbac.yaml
+  - configmap-secret.yaml
+  - resourcequota-limitrange.yaml
+  - networkpolicy.yaml
+  - deployments.yaml
+  - service.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: argocd
+  app.kubernetes.io/part-of: memory-service

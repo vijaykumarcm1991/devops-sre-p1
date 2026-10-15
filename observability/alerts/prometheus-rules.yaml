@@ -1,0 +1,53 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: memory-app-alerts
+  namespace: memory-app-prod
+  labels:
+    release: kube-prometheus
+    app: memory-app
+spec:
+  groups:
+    - name: memory-app.rules
+      rules:
+        # Alert 1: Application Health Check Failure (Pod unready or down)
+        - alert: MemoryAppHealthCheckFailure
+          expr: |
+            kube_pod_status_ready{namespace="memory-app-prod", condition="true"} == 0
+          for: 15s
+          labels:
+            severity: critical
+            service: memory-app
+          annotations:
+            summary: "Memory App Pod is not ready or failing health checks"
+            description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has failed health checks or is unready for more than 15 seconds."
+            runbook_url: "https://github.com/vijaykumarcm1991/devops-sre-p1#troubleshooting"
+
+        # Alert 2: OOMKilled Event (Triggered when pod hits memory limit)
+        - alert: MemoryAppOOMKilled
+          expr: |
+            sum by (namespace, pod, container) (
+              kube_pod_container_status_last_terminated_reason{namespace="memory-app-prod", reason="OOMKilled"}
+            ) > 0
+          for: 0m
+          labels:
+            severity: critical
+            service: memory-app
+          annotations:
+            summary: "Memory App container terminated due to OOMKilled"
+            description: "Container {{ $labels.container }} in Pod {{ $labels.pod }} (namespace {{ $labels.namespace }}) exceeded memory limit of 400Mi and was terminated by Linux OOM killer."
+            runbook_url: "https://github.com/vijaykumarcm1991/devops-sre-p1#memory-leak-mitigation"
+
+        # Alert 3: Memory Approaching Limit Warning (>85% of 400Mi limit = >340Mi)
+        - alert: MemoryAppApproachingOOM
+          expr: |
+            container_memory_working_set_bytes{namespace="memory-app-prod", container="memory-app"} 
+            / (400 * 1024 * 1024) > 0.85
+          for: 10s
+          labels:
+            severity: warning
+            service: memory-app
+          annotations:
+            summary: "Memory App container nearing 400Mi memory limit"
+            description: "Container {{ $labels.container }} in Pod {{ $labels.pod }} is utilizing {{ $value | humanizePercentage }} of its 400Mi memory quota. OOM termination imminent."
+            runbook_url: "https://github.com/vijaykumarcm1991/devops-sre-p1#memory-leak-mitigation"
