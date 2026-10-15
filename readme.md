@@ -76,3 +76,14 @@ Visibility into the cluster and the application's behavior is critical.
 - **Kubernetes Expertise:** Correct implementation of resource limits ensuring the `OOMKilled` behavior occurs as intended.
 - **Observability:** A functional, well-designed Grafana dashboard.
 - **Reliability Engineering:** Accurate and functional alerting rules for health checks and OOM limits.
+
+---
+
+## Solution & Architecture Documentation
+
+For complete technical documentation, architecture diagrams, step-by-step reproduction instructions, and task deep dives, please see:
+- **[Master Implementation Guide](IMPLEMENTATION_GUIDE.md)**
+- **[Task 1: Dockerization & Secure CI/CD Pipeline](TASK1_DOCKER_CICD.md)**
+- **[Task 2: GitOps Deployment with ArgoCD](TASK2_GITOPS_ARGOCD.md)**
+- **[Task 3: Observability, Logging, & Alerting](TASK3_OBSERVABILITY_ALERTING.md)**
+
