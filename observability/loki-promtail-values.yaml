@@ -1,5 +1,10 @@
 # Loki Configuration for centralized log aggregation
 loki:
+  # Keep the Prometheus datasource as the sole default in Grafana.
+  # If Loki is also marked default, the Grafana datasource sidecar merges both
+  # ConfigMaps and fails provisioning ("Only one datasource per organization can
+  # be marked as default"), crash-looping the Grafana pod.
+  isDefault: false
   auth_enabled: false
   commonConfig:
     replication_factor: 1

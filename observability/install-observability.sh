@@ -28,9 +28,15 @@ helm upgrade --install kube-prometheus prometheus-community/kube-prometheus-stac
 
 # 4. Deploy Loki and Promtail for centralized log aggregation
 echo "[4/6] Deploying Loki and Promtail..."
-helm upgrade --install loki grafana/loki-stack \
-  --namespace observability \
-  -f "${SCRIPT_DIR}/loki-promtail-values.yaml"
+# Retry the Helm install a few times: the first fetch of the loki-stack chart
+# tarball from GitHub reliably hits a transient network timeout in some
+# environments ("context deadline exceeded while awaiting headers").
+install_loki() {
+  helm upgrade --install loki grafana/loki-stack \
+    --namespace observability \
+    -f "${SCRIPT_DIR}/loki-promtail-values.yaml"
+}
+install_loki || install_loki || install_loki
 
 # 5. Apply ServiceMonitor and Prometheus Alerting Rules
 echo "[5/6] Applying ServiceMonitor and Prometheus Alerts..."
@@ -49,10 +55,14 @@ kubectl create configmap memory-app-grafana-dashboard \
 echo "=========================================================="
 echo "Observability Stack successfully installed!"
 echo "Access Grafana:"
-echo "  kubectl port-forward svc/kube-prometheus-grafana -n observability 3000:80"
-echo "  Default credentials: admin / prom-operator"
+echo "  kubectl port-forward svc/kube-prometheus-grafana -n observability 3000:3000"
+echo "  Open http://localhost:3000  (Default credentials: admin / prom-operator)"
 echo "Access Prometheus:"
-echo "  kubectl port-forward svc/kube-prometheus-kube-p-prometheus -n observability 9090:9090"
+echo "  kubectl port-forward svc/kube-prometheus-prometheus -n observability 9090:9090"
+echo "  Open http://localhost:9090"
 echo "Access Alertmanager:"
-echo "  kubectl port-forward svc/kube-prometheus-kube-p-alertmanager -n observability 9093:9093"
+echo "  kubectl port-forward svc/kube-prometheus-alertmanager -n observability 9093:9093"
+echo "  Open http://localhost:9093"
+echo "Access Loki (LogQL):"
+echo "  kubectl port-forward svc/loki -n observability 3100:3100"
 echo "=========================================================="

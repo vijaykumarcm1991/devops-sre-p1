@@ -13,8 +13,13 @@ echo "[1/4] Creating argocd namespace..."
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
 # Install Official ArgoCD manifests
-echo "[2/4] Applying official ArgoCD manifests..."
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# NOTE: The `stable` install manifest embeds the applicationsets.argoproj.io CRD,
+# whose YAML annotation exceeds the Kubernetes 256KB metadata limit on newer
+# clusters ("metadata.annotations: Too long: must have at most 262144 bytes").
+# That CRD failure does NOT affect the components this project needs (Application
+# and AppProject CRDs are created fine), so we tolerate it and proceed.
+echo "[2/4] Applying official ArgoCD manifests (tolerating the oversized applicationsets CRD)..."
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml || true
 
 # Wait for ArgoCD server deployment to become available
 echo "[3/4] Waiting for ArgoCD Server to become ready..."
